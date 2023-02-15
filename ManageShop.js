@@ -1,21 +1,12 @@
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View, TextInput, Alert, Image, Switch } from 'react-native'
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, Alert, Image } from 'react-native'
 import React from 'react'
 import { useState } from 'react'
 
 const ManageShop = (props) => {
-    const [id, setid] = useState(0)
-    const [addNew, setaddNew] = useState(false)
-    const [idShopUpdate, setidShopUpdate] = useState('')
-    const [updateShop, setupdateShop] = useState(false)
-    const [nameshop, setnameShop] = useState('')
-    const [addressShop, setaddressShop] = useState('')
-    const [phoneShop, setphoneShop] = useState('')
-    const [logo, setLogo] = useState('./assets/shops.png')
-    const [trangThai, settrangThai] = useState(true)
-    const [listShop, setlistShop] = useState([])
-    const toggleSwitch = () => settrangThai(!trangThai);
+    const nav = props.navigation;
+    const route = props.route;
+    const [renderAgain, setrenderAgain] = useState(false)
     const deleteShop = (itemId) => {
-        console.log(itemId)
         Alert.alert('Xóa', 'Bạn chắc chắn muốn xóa không?', [
             {
                 text: 'Cancel',
@@ -23,8 +14,9 @@ const ManageShop = (props) => {
             },
             {
                 text: 'OK', onPress: () => {
-                    const newList = listShop.filter((item) => { return item.id !== itemId });
-                    setlistShop(newList)
+                    const newList = route.params.listShop.filter((item) => { return item.id !== itemId });
+                    route.params.listShop = newList
+                    setrenderAgain(!renderAgain)
                 }
             },
         ]);
@@ -46,6 +38,9 @@ const ManageShop = (props) => {
             clearUseState('')
         }
     }
+    const changeUpdateShop=(item)=>{
+        nav.navigate('UpdateShop',{list: [...route.params.listShop],item: item})
+    }
     const showShopUpdate = (editId) => {
         const editItem = listShop.find(item => item.id == editId);
         setupdateShop(true);
@@ -55,41 +50,14 @@ const ManageShop = (props) => {
         setphoneShop(editItem.phoneNum)
         settrangThai(editItem.statusShop)
     }
-    const addShop = () => {
-        if(checkForm()){
-            setid(id + 1)
-            console.log(trangThai)
-            setlistShop([...listShop, { id: id, nameShop: nameshop, address: addressShop, phoneNum: phoneShop, logoShop: '', statusShop: trangThai }])
-            setaddNew(false)
-            clearUseState()
-            return;
-        }
-        
-        
+    
+    const changeAddShop=()=>{
+        nav.navigate('AddShop',{list:[...route.params.listShop]})
     }
-    const checkForm =()=>{
-        if(nameshop==''||addressShop==''||phoneShop==''||logo==''){
-            Alert.alert('', 'Không được để trống dữ liệu', [
-                {
-                    text: 'OK', onPress: () => {}
-                },
-            ]);
-            return false;
-        }
-        return true;
-
-    }
-    const clearUseState = () => {
-        setnameShop('')
-        setaddressShop('')
-        setphoneShop('')
-        settrangThai(true)
-        setLogo('./assets/shops.png')
-    }
-    console.log(...listShop)
+    console.log(route.params.listShop)
     return (
         <View style={styles.container}>
-            <FlatList data={[...listShop]}
+            <FlatList data={route.params.listShop}
                 renderItem={({ item }) => <>
                     <TouchableOpacity style={styles.boxItem}>
                         <Image
@@ -105,7 +73,7 @@ const ManageShop = (props) => {
                             <Text style={styles.textNum}>{item.address}</Text>
                             <Text style={styles.textNum2}>{item.phoneNum}</Text>
                             <View style={styles.boxSetting}>
-                                <TouchableOpacity onPress={() => showShopUpdate(item.id)}>
+                                <TouchableOpacity onPress={()=>changeUpdateShop(item)}>
                                     <Image
                                         style={styles.fix}
                                         source={require('./assets/setting.png')} />
@@ -120,104 +88,11 @@ const ManageShop = (props) => {
                     </TouchableOpacity>
                 </>}
                 keyExtractor={(item) => item.id} />
-            <TouchableOpacity onPress={() => { setaddNew(true) }}>
+            <TouchableOpacity onPress={changeAddShop}>
                 <Image
                     style={styles.add}
                     source={require('./assets/plus.png')} />
             </TouchableOpacity>
-            <Modal visible={addNew} animationType='fade'>
-                <View style={styles.bgAdd}>
-                    <TextInput
-                        style={styles.input}
-                        onChangeText={setnameShop}
-                        value={nameshop}
-                        placeholder='Tên cửa hàng'
-                    />
-                    <TextInput
-                        style={styles.input}
-                        onChangeText={setphoneShop}
-                        value={phoneShop}
-                        keyboardType='numeric'
-                        placeholder='Số điện thoại'
-                    />
-                    <TextInput
-                        style={styles.input}
-                        onChangeText={setaddressShop}
-                        value={addressShop}
-                        placeholder='Địa chỉ'
-                    />
-                    <TextInput
-                        style={styles.input}
-                        onChangeText={(text) => { setLogo(text) }}
-                        value={logo}
-                        placeholder='Ảnh cửa hàng'
-                    />
-                    <Switch
-                        trackColor={{ false: '#767577', true: '#81b0ff' }}
-                        thumbColor={trangThai ? '#f5dd4b' : '#f4f3f4'}
-                        ios_backgroundColor="#3e3e3e"
-                        onValueChange={toggleSwitch}
-                        value={trangThai}
-                    />
-                    <View style={styles.boxImgPre}>
-                        <Image
-                            style={styles.imgPreview}
-                            source={require('./assets/shops.png')}
-                        // source={{
-                        //     uri: 'https://reactnative.dev/img/tiny_logo.png',
-                        // }}
-                        />
-                    </View>
-                </View>
-                <View style={styles.boxOptions}>
-                    <TouchableOpacity style={[styles.btnOptions]} onPress={() => { setaddNew(false) }}>
-                        <Text style={styles.textBtn}>Hủy</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.btnOptions, { marginLeft: '2%' }]} onPress={() => { addShop() }}>
-                        <Text style={styles.textBtn}>Lưu</Text>
-                    </TouchableOpacity>
-                </View>
-            </Modal>
-            <Modal visible={updateShop} animationType='fade'>
-                <View style={styles.containerUpdate}>
-                    <TextInput
-                        style={styles.inputUpdate}
-                        onChangeText={(text) => { setnameShop(text) }}
-                        value={nameshop}
-                        placeholder='Tên cửa hàng'
-                    />
-                    <TextInput
-                        style={styles.inputUpdate}
-                        onChangeText={(text) => { setphoneShop(text) }}
-                        value={phoneShop}
-                        placeholder='Số điện thoại'
-                    />
-                    <TextInput
-                        style={styles.inputUpdate}
-                        onChangeText={(text) => { setaddressShop(text) }}
-                        value={addressShop}
-                        placeholder='Địa chỉ'
-                    />
-                    <TextInput
-                        style={styles.inputUpdate}
-                        onChangeText={(text) => { setLogo(text) }}
-                        value={logo}
-                        placeholder='Ảnh cửa hàng'
-                    />
-                    <Switch
-                        trackColor={{ false: '#767577', true: '#81b0ff' }}
-                        thumbColor={trangThai ? '#f5dd4b' : '#f4f3f4'}
-                        ios_backgroundColor="#3e3e3e"
-                        onValueChange={toggleSwitch}
-                        value={trangThai}
-                    />
-                    <View style={styles.boxSaveUpdate}>
-                        <TouchableOpacity style={styles.btnSaveUpdate} onPress={() => { changeUpdate(idShopUpdate) }}>
-                            <Text style={styles.textSaveUpdate}>Lưu</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
         </View>
     )
 }
@@ -229,12 +104,7 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
         flex: 1
     },
-    input: {
-        height: 40,
-        margin: 12,
-        borderWidth: 1,
-        padding: 10,
-    },
+    
     imgItem: {
         height: 80,
         width: 80,
@@ -294,61 +164,4 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50
     },
-    bgAdd: {
-        padding: 10,
-        flex: 1
-    },
-    btnOptions: {
-        padding: 12,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        backgroundColor: '#3D5AFE',
-        width: '48.8%',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    boxOptions: {
-        flexDirection: 'row',
-    },
-    textBtn: {
-        color: '#fff',
-        fontSize: 22,
-        fontWeight: 'bold'
-    },
-    imgPreview: {
-        width: 200,
-        height: 200
-    },
-    boxImgPre: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 50
-    },
-    // update
-    containerUpdate: {
-        flex: 1,
-        paddingHorizontal: 10,
-        paddingVertical: 15,
-        backgroundColor: '#9575CD'
-    },
-    inputUpdate: {
-        marginVertical: 8,
-        borderWidth: 1,
-        padding: 10,
-        backgroundColor: '#fff'
-    },
-    btnSaveUpdate: {
-        borderRadius: 10,
-        backgroundColor: '#0277BD',
-        padding: 10,
-    },
-    boxSaveUpdate: {
-        flexDirection: 'row',
-        justifyContent: 'flex-start'
-    },
-    textSaveUpdate: {
-        fontSize: 18,
-        color: '#fff',
-        fontWeight: 'bold'
-    }
 })

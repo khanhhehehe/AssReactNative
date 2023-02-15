@@ -5,13 +5,14 @@ import { useState } from 'react'
 
 const Home = (props) => {
   const nav = props.navigation
+  const [listShop, setlistShop] = useState([{ id: 0, nameShop: "Khanh", address: "Ha Noi", phoneNum: "0123323123", logoShop: './assets/shops.png', statusShop: true }])
+  const [hide, setHide] = useState(false)
   const changeMyprofile = () => {
     nav.navigate('MyProfile')
   }
   const changeManage = () => {
-    nav.navigate('ManageShop')
+    nav.navigate('ManageShop',{listShop: listShop})
   }
-  const [hide, setHide] = useState(false)
   const options = () => {
     setHide(true)
   }
