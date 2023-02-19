@@ -1,12 +1,29 @@
-import { FlatList, StyleSheet, Text, TouchableOpacity, View, Alert, Image } from 'react-native'
+import { FlatList, StyleSheet, Text, TouchableOpacity, View, Alert, Image, ActivityIndicator } from 'react-native'
 import React from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { API_SHOPS } from './api'
+import { useIsFocused } from '@react-navigation/native'
 
 const ManageShop = (props) => {
     const nav = props.navigation;
-    const route = props.route;
-    const [renderAgain, setrenderAgain] = useState(false)
-    const deleteShop = (itemId) => {
+    const isFocus = useIsFocused()
+    const [isLoading, setLoading] = useState(true)
+    const [listShop, setlistShop] = useState([])
+    const aniLoading = () => {
+        return <ActivityIndicator style={styles.boxAll} size={'large'} />
+    }
+    const getShops = () => {
+        fetch(API_SHOPS)
+            .then(res => res.json())
+            .then(data => {
+                setlistShop(data)
+                setLoading(false)
+            })
+    }
+    useEffect(() => {
+        getShops();
+    }, [isFocus]);
+    const deleteShop = (deleteId) => {
         Alert.alert('Xóa', 'Bạn chắc chắn muốn xóa không?', [
             {
                 text: 'Cancel',
@@ -14,80 +31,61 @@ const ManageShop = (props) => {
             },
             {
                 text: 'OK', onPress: () => {
-                    const newList = route.params.listShop.filter((item) => { return item.id !== itemId });
-                    route.params.listShop = newList
-                    setrenderAgain(!renderAgain)
+                    fetch(`${API_SHOPS}/${deleteId}`, { method: 'DELETE' }).then(res => { getShops() })
                 }
             },
         ]);
     }
-    const changeUpdate = (editId) => {
-        if(checkForm()){
-            const newEditList = listShop.map(item => {
-                if (item.id == editId) {
-                    item.nameShop = nameshop;
-                    item.address = addressShop;
-                    item.phoneNum = phoneShop;
-                    item.logoShop = logo;
-                    item.statusShop = trangThai
-                }
-                return item
-            })
-            setlistShop(newEditList)
-            setupdateShop(false)
-            clearUseState('')
-        }
+    const changeUpdateShop = (editItem) => {
+        nav.navigate('UpdateShop', { editItem })
     }
-    const changeUpdateShop=(item)=>{
-        nav.navigate('UpdateShop',{list: [...route.params.listShop],item: item})
+    const changeAddShop = () => {
+        nav.navigate('AddShop')
     }
-    const showShopUpdate = (editId) => {
-        const editItem = listShop.find(item => item.id == editId);
-        setupdateShop(true);
-        setidShopUpdate(editId);
-        setnameShop(editItem.nameShop)
-        setaddressShop(editItem.address)
-        setphoneShop(editItem.phoneNum)
-        settrangThai(editItem.statusShop)
+    const itemDetail = (itemId) =>{
+        const itemTemp = listShop[itemId-1]
+        Alert.alert('Thông tin chi tiết cửa hàng',"Cửa hàng: "+itemTemp.nameShop+"\nĐịa chỉ: "+itemTemp.address+"\nSố điện thoại: "+itemTemp.phoneNum+`\nTrạng thái: ${itemTemp.statusShop?'Đang hoạt động':'Tạm đóng cửa'}`, [
+            {
+                text: 'OK', onPress: () => {}
+            },
+        ]);
     }
-    
-    const changeAddShop=()=>{
-        nav.navigate('AddShop',{list:[...route.params.listShop]})
-    }
-    console.log(route.params.listShop)
     return (
         <View style={styles.container}>
-            <FlatList data={route.params.listShop}
-                renderItem={({ item }) => <>
-                    <TouchableOpacity style={styles.boxItem}>
-                        <Image
-                            style={styles.imgItem}
-                            source={require('./assets/shops.png')} />
-                        <View>
-                            <View style={styles.boxStatus}>
-                                {
-                                item.statusShop?<View style={styles.statusChecked}></View>:<View style={styles.statusNChecked}></View>
-                                }
-                                <Text style={styles.text}>{item.nameShop}</Text>
-                            </View>
-                            <Text style={styles.textNum}>{item.address}</Text>
-                            <Text style={styles.textNum2}>{item.phoneNum}</Text>
-                            <View style={styles.boxSetting}>
-                                <TouchableOpacity onPress={()=>changeUpdateShop(item)}>
-                                    <Image
-                                        style={styles.fix}
-                                        source={require('./assets/setting.png')} />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => deleteShop(item.id)}>
-                                    <Image
-                                        style={styles.fix}
-                                        source={require('./assets/delete.png')} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </TouchableOpacity>
-                </>}
-                keyExtractor={(item) => item.id} />
+            <View style={styles.boxAll}>
+                {isLoading ? aniLoading() :
+                    <FlatList data={listShop}
+                        renderItem={({ item }) => <>
+                            <TouchableOpacity style={styles.boxItem} onPress={()=>itemDetail(item.id)}>
+                                <Image
+                                    style={styles.imgItem}
+                                    source={{uri: item.logoShop}} />
+                                <View>
+                                    <View style={styles.boxStatus}>
+                                        {
+                                            item.statusShop ? <View style={styles.statusChecked}></View> : <View style={styles.statusNChecked}></View>
+                                        }
+                                        <Text style={styles.text}>{item.nameShop}</Text>
+                                    </View>
+                                    <Text style={styles.textNum}>{item.address}</Text>
+                                    <Text style={styles.textNum2}>{item.phoneNum}</Text>
+                                    <View style={styles.boxSetting}>
+                                        <TouchableOpacity onPress={() => changeUpdateShop(item)}>
+                                            <Image
+                                                style={styles.fix}
+                                                source={require('./assets/setting.png')} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => deleteShop(item.id)}>
+                                            <Image
+                                                style={styles.fix}
+                                                source={require('./assets/delete.png')} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </TouchableOpacity>
+                        </>}
+                        keyExtractor={(item) => item.id} />}
+            </View>
             <TouchableOpacity onPress={changeAddShop}>
                 <Image
                     style={styles.add}
@@ -104,7 +102,7 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
         flex: 1
     },
-    
+
     imgItem: {
         height: 80,
         width: 80,
@@ -164,4 +162,10 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50
     },
+    boxAll: {
+        flex: 1
+    },
+    txtDetail:{
+        fontSize:20
+    }
 })

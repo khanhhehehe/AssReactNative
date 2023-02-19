@@ -1,21 +1,22 @@
 import { StyleSheet, Text, View, TextInput, Switch, Image, TouchableOpacity, Alert } from 'react-native'
 import React from 'react'
 import { useState, useEffect } from 'react'
+import { API_SHOPS } from './api'
+import * as ImagePicker from 'expo-image-picker'
+import DefaultImage from './assets/shops.png'
 
 const AddShop = (props) => {
     const nav = props.navigation
-    const route = props.route
-    const [back, setBack] = useState(false)
-    const [id, setid] = useState(route.params.list != undefined ? route.params.list.length : 0)
-    const [listShop, setlistShop] = useState(route.params.list)
-    const [nameshop, setnameShop] = useState('')
-    const [addressShop, setaddressShop] = useState('')
-    const [phoneShop, setphoneShop] = useState('')
-    const [logo, setLogo] = useState('./assets/shops.png')
-    const [trangThai, settrangThai] = useState(true)
-    const toggleSwitch = () => settrangThai(!trangThai);
+    const DEFAULT_IMAGE = Image.resolveAssetSource(DefaultImage).uri;
+    const [hasGalleryPermission, setHasGalleryPermission] = useState(null)
+    const [nameShop, setnameShop] = useState('')
+    const [address, setaddressShop] = useState('')
+    const [phoneNum, setphoneShop] = useState('')
+    const [logoShop, setLogo] = useState(DEFAULT_IMAGE)
+    const [statusShop, settrangThai] = useState(true)
+    const toggleSwitch = () => settrangThai(!statusShop);
     const checkForm = () => {
-        if (nameshop == '' || addressShop == '' || phoneShop == '' || logo == '') {
+        if (!nameShop || !address || !phoneNum) {
             Alert.alert('', 'Không được để trống dữ liệu', [
                 {
                     text: 'OK', onPress: () => { }
@@ -28,26 +29,40 @@ const AddShop = (props) => {
     }
     const addShop = () => {
         if (checkForm()) {
-            setlistShop([...listShop, { id: id, nameShop: nameshop, address: addressShop, phoneNum: phoneShop, logoShop: logo, statusShop: trangThai }])
-            clearUseState()
-            setBack(true)
+            let newObj = { nameShop, address, phoneNum, logoShop, statusShop }
+            fetch(API_SHOPS, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                method: 'POST',
+                body: JSON.stringify(newObj)
+            }).catch((error) => { console.error(); }).then((res) => nav.goBack())
         }
-    }
-    const backManage = () => {
-        nav.navigate('ManageShop', { listShop })
-    }
-    const clearUseState = () => {
-        setnameShop('')
-        setaddressShop('')
-        setphoneShop('')
-        settrangThai(true)
-        setLogo('./assets/shops.png')
     }
     const cancelAdd = () => {
         nav.goBack()
     }
-    if (back) {
-        backManage()
+
+    useEffect(() => {
+        (async () => {
+            const galleryStatus = await ImagePicker.requestCameraPermissionsAsync();
+            setHasGalleryPermission(galleryStatus.status === 'granted');
+        })();
+    }, []);
+    const chooseImg = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+        if (!result.canceled) {
+            setLogo(result.assets[0].uri);
+        }
+    }
+    if (hasGalleryPermission === false) {
+        return <Text>No access to Internal Storage</Text>
     }
     return (
         <View style={styles.container}>
@@ -55,49 +70,41 @@ const AddShop = (props) => {
                 <TextInput
                     style={styles.input}
                     onChangeText={setnameShop}
-                    value={nameshop}
+                    value={nameShop}
                     placeholder='Tên cửa hàng'
                 />
                 <TextInput
                     style={styles.input}
                     onChangeText={setphoneShop}
-                    value={phoneShop}
+                    value={phoneNum}
                     keyboardType='numeric'
                     placeholder='Số điện thoại'
                 />
                 <TextInput
                     style={styles.input}
                     onChangeText={setaddressShop}
-                    value={addressShop}
+                    value={address}
                     placeholder='Địa chỉ'
                 />
-                <TextInput
-                    style={styles.input}
-                    onChangeText={(text) => { setLogo(text) }}
-                    value={logo}
-                    placeholder='Ảnh cửa hàng'
-                    editable={false}
-                />
+                <View style={{flexDirection:'row',justifyContent:'flex-start'}}>
+                    <TouchableOpacity style={{ padding: 10, backgroundColor: '#5C6BC0',marginLeft:10 }} onPress={chooseImg}>
+                        <Text style={{color:'#fff',fontWeight:'bold',fontSize:15}}>Chọn ảnh cửa hàng</Text>
+                    </TouchableOpacity>
+                </View>
                 <View style={styles.boxSwitch}>
                     <View style={styles.switch}>
                         <Text style={styles.textSwitch}>Trạng thái</Text>
                         <Switch
-                            trackColor={{ false: '#767577', true: '#00C853' }}
-                            thumbColor={trangThai ? '#69F0AE' : '#f4f3f4'}
+                            trackColor={{ false: '#F44336', true: '#00C853' }}
+                            thumbColor={statusShop ? '#69F0AE' : '#FF8A80'}
                             ios_backgroundColor="#3e3e3e"
                             onValueChange={toggleSwitch}
-                            value={trangThai}
+                            value={statusShop}
                         />
                     </View>
                 </View>
                 <View style={styles.boxImgPre}>
-                    <Image
-                        style={styles.imgPreview}
-                        source={require('./assets/shops.png')}
-                    // source={{
-                    //     uri: 'https://reactnative.dev/img/tiny_logo.png',
-                    // }}
-                    />
+                    {logoShop && <Image source={{ uri: logoShop }} style={styles.imgPreview} />}
                 </View>
             </View>
             <View style={styles.boxOptions}>
@@ -105,7 +112,7 @@ const AddShop = (props) => {
                     <Text style={styles.textBtn}>Hủy</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.btnOptions, { marginLeft: '2%' }]} onPress={() => { addShop() }}>
-                    <Text style={styles.textBtn}>Lưu</Text>
+                    <Text style={styles.textBtn}>Thêm</Text>
                 </TouchableOpacity>
             </View>
         </View>
@@ -117,12 +124,14 @@ export default AddShop
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor:'#F9FBE7'
     },
     input: {
         height: 40,
         margin: 12,
         borderWidth: 1,
         padding: 10,
+        backgroundColor:'#fff'
     },
     imgPreview: {
         width: 200,
@@ -146,29 +155,33 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     bgAdd: {
+        flex:1,
         padding: 10,
     },
     boxImgPre: {
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 50
+        padding:8,
+        backgroundColor:'#fff'
     },
     switch: {
-        justifyContent: 'flex-start',
-        alignItems: 'flex-start',
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: '#B2EBF2',
-        paddingRight:13,
-        marginLeft:10,
-        borderWidth:1
+        paddingRight: 13,
+        marginLeft: 10,
+        flexDirection:'row'
     },
     textSwitch: {
         marginLeft: 12,
         color: '#01579B',
         fontSize: 20,
-        fontWeight: 'bold'
+        fontWeight: 'bold',
     },
-    boxSwitch:{
-        flexDirection:'row',
-        justifyContent:'flex-start',
+    boxSwitch: {
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
+        marginTop:10,
+        marginBottom:25
     }
 })
